@@ -26,23 +26,23 @@
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
   .score { width: 58px; text-align: center; font-weight: 700; }
   
-  /* Puan Durumu Özel Koyu Tema Uyumlu Tasarım */
-  .card.standings-card { background: #0b0f19; border-color: #1e293b; }
+  /* Puan Durumu Özel Koyu Tema Tasarımı */
+  .card.standings-card { background: #000000; border-color: #1e293b; }
   .card.standings-card h2 { color: #22c55e; font-weight: 800; }
   table { width: 100%; border-collapse: collapse; font-size: .92rem; color: #ffffff; }
   th, td { padding: 10px 8px; text-align: center; border-bottom: 1px solid #1e293b; }
-  th { color: #22c55e; font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .4px; background: rgba(15,23,42,0.8); }
+  th { color: #22c55e; font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .4px; background: rgba(0,0,0,0.9); }
   td.tm { text-align: left; font-weight: 700; white-space: nowrap; color: #ffffff; }
   tr.top3 td { background: rgba(34,197,94,0.12); }
   .pos { color: #94a3b8; font-weight: 700; }
   
-  .badge { display: inline-block; min-width: 24px; padding: 2px 6px; border-radius: 6px; background: #334155; font-size: .78rem; font-weight: 700; }
+  .badge { display: inline-block; min-width: 24px; padding: 2px 6px; border-radius: 6px; background: #334155; font-size: .78rem; font-weight: 700; color: #fff; }
   .match-list { list-style: none; padding: 0; margin: 0; max-height: 380px; overflow-y: auto; }
-  .match-list li { display: flex; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid #334155; font-size: .9rem; }
+  .match-list li { display: flex; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid #334155; font-size: .9rem; color: #fff; }
   .match-list .sc { font-weight: 700; color: #22c55e; min-width: 44px; text-align: center; }
   .match-list button { margin-left: auto; }
   .team-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; background: #334155; border-radius: 999px; padding: 4px 6px 4px 12px; font-size: .85rem; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; background: #334155; border-radius: 999px; padding: 4px 6px 4px 12px; font-size: .85rem; color: #fff; }
   .chip button { background: none; color: #f87171; padding: 0 4px; font-size: .9rem; }
   .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #22c55e; color: #052e16; font-weight: 600; padding: 10px 18px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 20; }
   .toast.show { opacity: 1; }
@@ -203,12 +203,12 @@
     return rows;
   }
 
-  // ---------- Fixtures ----------
+  // ---------- Fixtures (İkili Eşleşme / Round-Robin) ----------
   function makeFixtures() {
     const ids = state.teams.map(t => t.id);
     if (ids.length < 2) { toast("Fikstür için en az 2 takım gerekli."); return; }
     const arr = ids.slice();
-    if (arr.length % 2 === 1) arr.push(null);
+    if (arr.length % 2 === 1) arr.push(null); // Tek sayıysa bay ekle
     const n = arr.length, rounds = n - 1, half = n / 2;
     fixtures = [];
     let list = arr.slice();
@@ -217,10 +217,10 @@
         const h = list[i], a = list[n - 1 - i];
         if (h !== null && a !== null) fixtures.push({ home: h, away: a, hg: "", ag: "" });
       }
-      list.splice(1, 0, list.pop());
+      list.splice(1, 0, list.pop()); // Takımları döndür
     }
     renderFixturePanel();
-    toast(fixtures.length + " maçlık fikstür oluşturuldu.");
+    toast(fixtures.length + " maçlık ikili fikstür oluşturuldu.");
   }
   function renderFixturePanel() {
     let panel = $("fixturePanel");
@@ -229,7 +229,7 @@
       panel = document.createElement("section");
       panel.className = "card"; panel.style.marginTop = "16px";
       panel.id = "fixturePanel";
-      panel.innerHTML = "<h2>🗓️ Fikstür (Skor Girilebilir)</h2><div id='fixtureList'></div><p class='hint'>Buraya girdiğiniz skorlar doğrudan maç listesine kaydedilir.</p>";
+      panel.innerHTML = "<h2>🗓️ İkili Eşleşme Fikstürü</h2><div id='fixtureList'></div><p class='hint'>Buraya girdiğiniz skorlar doğrudan maç listesine kaydedilir.</p>";
       document.querySelector("main").insertBefore(panel, $("standings").closest(".card"));
     }
     const box = panel.querySelector("#fixtureList");
@@ -240,11 +240,11 @@
       row.className = "row";
       row.innerHTML =
         "<span class='badge'>" + (i + 1) + "</span>" +
-        "<span style='flex:1;text-align:right'>" + nameOf(f.home) + "</span>" +
+        "<span style='flex:1;text-align:right;font-weight:600'>" + nameOf(f.home) + "</span>" +
         "<input class='score fh' type='number' min='0' placeholder='-'>" +
         "<span style='font-weight:700'>:</span>" +
         "<input class='score fa' type='number' min='0' placeholder='-'>" +
-        "<span style='flex:1'>" + nameOf(f.away) + "</span>";
+        "<span style='flex:1;font-weight:600'>" + nameOf(f.away) + "</span>";
       const btn = document.createElement("button");
       btn.textContent = "Kaydet";
       btn.onclick = () => {
