@@ -79,7 +79,7 @@
       <h2>➕ Takım Ekle</h2>
       <div class="row">
         <input id="teamName" class="sel" placeholder="Takım adı" style="flex:1" />
-        <button id="btnAddTeam">Ekle</label>
+        <button id="btnAddTeam">Ekle</button>
       </div>
       <div class="team-chips" id="teamChips"></div>
       <p class="hint" style="color:#94a3b8">Takım sayısında sınır yoktur; istediğiniz kadar takım ekleyebilirsiniz.</p>
@@ -205,44 +205,64 @@
     return rows;
   }
 
-  // ---------- Fixtures (Karışık & Üst üste gelmeyen rövanşlı eşleşme) ----------
+  // ---------- Akıllı Fikstür Algoritması (En fazla 2 Maç Arka Arkaya) ----------
   function makeFixtures() {
     const ids = state.teams.map(t => t.id);
     if (ids.length < 2) { toast("Fikstür için en az 2 takım gerekli."); return; }
     
-    let rawPairs = [];
+    // Rövanşlı tüm ikili maç havuzu (Furkan-Onur ve Onur-Furkan)
+    let pool = [];
     for (let i = 0; i < ids.length; i++) {
       for (let j = 0; j < ids.length; j++) {
-        if (i !== j) {
-          rawPairs.push({ home: ids[i], away: ids[j], hg: "", ag: "" });
-        }
+        if (i !== j) pool.push({ home: ids[i], away: ids[j], hg: "", ag: "" });
       }
     }
+    
+    // Havuzu karıştır
+    pool.sort(() => Math.random() - 0.5);
 
-    // Karıştırma algoritması (Shuffle) ve art arda aynı kişinin gelmesini önleyen düzenleme
-    rawPairs.sort(() => Math.random() - 0.5);
-    
-    let balancedFixtures = [];
-    let pool = [...rawPairs];
-    
-    while(pool.length > 0) {
-      if (balancedFixtures.length === 0) {
-        balancedFixtures.push(pool.shift());
-      } else {
-        let lastMatch = balancedFixtures[balancedFixtures.length - 1];
-        let nextIdx = pool.findIndex(m => m.home !== lastMatch.home && m.home !== lastMatch.away && m.away !== lastMatch.home && m.away !== lastMatch.away);
-        
-        if (nextIdx !== -1) {
-          balancedFixtures.push(pool.splice(nextIdx, 1)[0]);
+    let result = [];
+    let streakCount = {};
+    ids.forEach(id => streakCount[id] = 0);
+
+    while (pool.length > 0) {
+      let bestIndex = -1;
+      let minStreakScore = Infinity;
+
+      for (let i = 0; i < pool.length; i++) {
+        let candidate = pool[i];
+        let hStreak = streakCount[candidate.home] || 0;
+        let aStreak = streakCount[candidate.away] || 0;
+
+        // Üst üste 2 maç kuralı: 2 maçı dolduran takıma öncelik verme
+        if (hStreak < 2 && aStreak < 2) {
+          let score = hStreak + aStreak;
+          if (score < minStreakScore) {
+            minStreakScore = score;
+            bestIndex = i;
+          }
+        }
+      }
+
+      // Eğer 2'den az seri yapan uygun maç bulunamadıysa havuzdaki ilk maçı al
+      if (bestIndex === -1) bestIndex = 0;
+
+      let picked = pool.splice(bestIndex, 1)[0];
+      result.push(picked);
+
+      // Seri sayaçlarını güncelle
+      ids.forEach(id => {
+        if (id === picked.home || id === picked.away) {
+          streakCount[id] = (streakCount[id] || 0) + 1;
         } else {
-          balancedFixtures.push(pool.shift());
+          streakCount[id] = 0; // Oynamayan kişinin serisini sıfırla
         }
-      }
+      });
     }
 
-    fixtures = balancedFixtures;
+    fixtures = result;
     renderFixturePanel();
-    toast(fixtures.length + " maçlık karışık ve dengeli fikstür oluşturuldu.");
+    toast(fixtures.length + " maçlık dengeli fikstür oluşturuldu.");
   }
 
   function renderFixturePanel() {
@@ -252,7 +272,7 @@
       panel = document.createElement("section");
       panel.className = "card"; panel.style.marginTop = "16px";
       panel.id = "fixturePanel";
-      panel.innerHTML = "<h2>🗓️ İkili Eşleşme Fikstürü (Karışık & Dengeli)</h2><div id='fixtureList' style='max-height:350px;overflow-y:auto'></div><p class='hint' style='color:#94a3b8'>Buraya girdiğiniz skorlar doğrudan maç listesine kaydedilir.</p>";
+      panel.innerHTML = "<h2>🗓️ İkili Eşleşme Fikstürü (Rövanşlı & Üst Üste Max 2 Maç)</h2><div id='fixtureList' style='max-height:350px;overflow-y:auto'></div><p class='hint' style='color:#94a3b8'>Buraya girdiğiniz skorlar doğrudan maç listesine kaydedilir.</p>";
       document.querySelector("main").insertBefore(panel, $("standings").closest(".card"));
     }
     const box = panel.querySelector("#fixtureList");
@@ -313,7 +333,7 @@
 
   // ---------- Excel Export / Import ----------
   function exportExcel() {
-    if (typeof XLSX === 'undefined') { toast("Excel modülü yüklenemedi."); return; }
+    if (typeof XLSX === 'undefined') { toast("Excel modülü yüklenemedi, interneti kontrol edin."); return; }
     
     const wb = XLSX.utils.book_new();
 
