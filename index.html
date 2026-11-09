@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Futbol Ligi - Puan ve Maç Sistemi</title>
-<!-- Excel (.xlsx) İşlemleri İçin SheetJS Kütüphanesi -->
+<!-- Excel (.xlsx) İşlemleri İçin Kararlı Kütüphane -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #111827; background: #0f172a; }
@@ -205,7 +205,7 @@
     return rows;
   }
 
-  // ---------- Fixtures (Rövanşlı: Furkan-Onur ve Onur-Furkan) ----------
+  // ---------- Fixtures (Rövanşlı) ----------
   function makeFixtures() {
     const ids = state.teams.map(t => t.id);
     if (ids.length < 2) { toast("Fikstür için en az 2 takım gerekli."); return; }
@@ -289,9 +289,9 @@
 
   function esc(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
 
-  // ---------- Excel (XLSX) Export / Import / Reset ----------
+  // ---------- Excel Export / Import ----------
   function exportExcel() {
-    if (typeof XLSX === 'undefined') { toast("Excel modülü yüklenemedi."); return; }
+    if (typeof XLSX === 'undefined') { toast("Excel modülü yüklenemedi, interneti kontrol edin."); return; }
     
     const wb = XLSX.utils.book_new();
 
@@ -311,34 +311,16 @@
     const wsStandings = XLSX.utils.json_to_sheet(standingsData);
     XLSX.utils.book_append_sheet(wb, wsStandings, "Puan Durumu");
 
-    // 2. Oynanan Maçlar Sayfası
-    const nameOf = id => (state.teams.find(t => t.id === id) || {}).name || "?";
-    const matchesData = state.matches.map(m => ({
-      "Ev Sahibi": nameOf(m.home),
-      "Ev Gol": m.hg,
-      "Dep Gol": m.ag,
-      "Deplasman": nameOf(m.away)
-    }));
-    const wsMatches = XLSX.utils.json_to_sheet(matchesData);
-    XLSX.utils.book_append_sheet(wb, wsMatches, "Oynanan Maçlar");
-
-    // 3. Ham Sistem Verisi (Yedekten Geri Yükleme İçin)
-    const rawData = [
-      { Type: "TEAM", ID: t.id, Name: t.name, Home: "", Away: "", HG: "", AG: "" } for t in state.teams
-    ].concat(state.matches.map(m => ({
-      Type: "MATCH", ID: m.id, Name: "", Home: m.home, Away: m.away, HG: m.hg, AG: m.ag
-    })));
-    
-    // JS Object array to sheet format
+    // 2. Sistem Verisi (Yedekten Geri Yükleme İçin)
     const sysData = [];
-    state.teams.forEach(t => sysData.push({ Type: "TEAM", ID: t.id, Name: t.name, Home: "", Away: "", HG: "", AG: "" }));
-    state.matches.forEach(m => sysData.push({ Type: "MATCH", ID: m.id, Name: "", Home: "", Away: "", HG: m.hg, AG: m.ag, HomeID: m.home, AwayID: m.away }));
+    state.teams.forEach(t => sysData.push({ Type: "TEAM", ID: t.id, Name: t.name, HomeID: "", AwayID: "", HG: "", AG: "" }));
+    state.matches.forEach(m => sysData.push({ Type: "MATCH", ID: m.id, Name: "", HomeID: m.home, AwayID: m.away, HG: m.hg, AG: m.ag }));
     
     const wsSystem = XLSX.utils.json_to_sheet(sysData);
     XLSX.utils.book_append_sheet(wb, wsSystem, "Sistem_Verisi");
 
     XLSX.writeFile(wb, "Futbol_Ligi_Kayıtları.xlsx");
-    toast("Excel (.xlsx) indirildi.");
+    toast("Excel dosyası indirildi.");
   }
 
   $("fileImport").addEventListener("change", e => {
@@ -367,12 +349,12 @@
           if (newTeams.length > 0) {
             state = { teams: newTeams, matches: newMatches };
             save(); render();
-            toast("Excel'den başarıyla yüklendi.");
+            toast("Excel'den veriler yüklendi.");
           } else {
-            toast("Geçersiz Excel yapısı.");
+            toast("Geçersiz Excel verisi.");
           }
         } else {
-          toast("Sistem veri sayfası bulunamadı.");
+          toast("Excel içinde sistem verisi bulunamadı.");
         }
       } catch (err) { toast("Excel okunurken hata oluştu."); }
     };
