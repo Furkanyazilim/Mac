@@ -1,4 +1,4 @@
-
+<!doctype html>
 <html lang="tr">
 <head>
 <meta charset="UTF-8" />
@@ -25,13 +25,18 @@
   button.danger { background: #ef4444; color: #fff; padding: 4px 9px; font-size: .8rem; }
   .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
   .score { width: 58px; text-align: center; font-weight: 700; }
-  table { width: 100%; border-collapse: collapse; font-size: .92rem; }
-  th, td { padding: 8px 6px; text-align: center; border-bottom: 1px solid #334155; }
-  th { color: #22c55e; font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .4px; }
-  td.tm { text-align: left; font-weight: 600; white-space: nowrap; }
-  tr.top3 td { background: rgba(34,197,94,.08); }
+  
+  /* Puan Durumu Özel Koyu Tema Uyumlu Tasarım */
+  .card.standings-card { background: #0b0f19; border-color: #1e293b; }
+  .card.standings-card h2 { color: #22c55e; font-weight: 800; }
+  table { width: 100%; border-collapse: collapse; font-size: .92rem; color: #ffffff; }
+  th, td { padding: 10px 8px; text-align: center; border-bottom: 1px solid #1e293b; }
+  th { color: #22c55e; font-weight: 700; font-size: .8rem; text-transform: uppercase; letter-spacing: .4px; background: rgba(15,23,42,0.8); }
+  td.tm { text-align: left; font-weight: 700; white-space: nowrap; color: #ffffff; }
+  tr.top3 td { background: rgba(34,197,94,0.12); }
   .pos { color: #94a3b8; font-weight: 700; }
-  .badge { display: inline-block; min-width: 24px; padding: 2px 6px; border-radius: 6px; background: #334155; font-size: .78rem; }
+  
+  .badge { display: inline-block; min-width: 24px; padding: 2px 6px; border-radius: 6px; background: #334155; font-size: .78rem; font-weight: 700; }
   .match-list { list-style: none; padding: 0; margin: 0; max-height: 380px; overflow-y: auto; }
   .match-list li { display: flex; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid #334155; font-size: .9rem; }
   .match-list .sc { font-weight: 700; color: #22c55e; min-width: 44px; text-align: center; }
@@ -92,7 +97,7 @@
     </section>
   </div>
 
-  <section class="card" style="margin-top:16px">
+  <section class="card standings-card" style="margin-top:16px">
     <h2>🏆 Puan Durumu</h2>
     <div style="overflow-x:auto">
       <table id="standings">
@@ -271,7 +276,7 @@
     const table = computeTable();
     const formBadge = f => "<span class='badge' style='background:" + (f === "G" ? "#22c55e" : f === "B" ? "#eab308" : "#ef4444") + ";color:#0f172a'>" + f + "</span>";
     $("standings").querySelector("tbody").innerHTML = table.map((r, i) =>
-      "<tr" + (i < 3 ? " class='top3'" : "") + "><td class='pos'>" + (i + 1) + "</td><td class='tm'>" + (i === 0 ? "🏆 " : "") + esc(r.name) + "</td><td>" + r.O + "</td><td>" + r.G + "</td><td>" + r.B + "</td><td>" + r.M + "</td><td>" + r.A + "</td><td>" + r.Y + "</td><td>" + (r.A - r.Y) + "</td><td><b>" + r.P + "</b></td><td>" + r.form.slice(-5).map(formBadge).join(" ") + "</td></tr>"
+      "<tr" + (i < 3 ? " class='top3'" : "") + "><td class='pos'>" + (i + 1) + "</td><td class='tm'>" + (i === 0 ? "🏆 " : "") + esc(r.name) + "</td><td>" + r.O + "</td><td>" + r.G + "</td><td>" + r.B + "</td><td>" + r.M + "</td><td>" + r.A + "</td><td>" + r.Y + "</td><td>" + (r.A - r.Y) + "</td><td><b style='color:#22c55e'>" + r.P + "</b></td><td>" + r.form.slice(-5).map(formBadge).join(" ") + "</td></tr>"
     ).join("") || "<tr><td colspan='11' style='padding:20px;color:#94a3b8'>Henüz takım yok. Yukarıdan takım ekleyin.</td></tr>";
 
     const nameOf = id => (state.teams.find(t => t.id === id) || {}).name || "?";
