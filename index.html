@@ -199,18 +199,17 @@
       H.O++; A.O++; H.A += m.hg; H.Y += m.ag; A.A += m.ag; A.Y += m.hg;
       if (m.hg > m.ag) { H.G++; H.P += 3; A.M++; H.form.push("G"); A.form.push("M"); }
       else if (m.hg < m.ag) { A.G++; A.P += 3; H.M++; A.form.push("G"); H.form.push("M"); }
-      else { H.B++; A.B++; H.P++; A.P++; H.form.push("B"); H.form.push("B"); }
+      else { H.B++; A.B++; H.P++; A.P++; H.form.push("B"); A.form.push("B"); }
     });
     rows.sort((x, y) => y.P - x.P || (y.A - y.Y) - (x.A - x.Y) || y.A - x.A || x.name.localeCompare(y.name, "tr"));
     return rows;
   }
 
-  // ---------- Akıllı Fikstür Algoritması (En fazla 2 Maç Arka Arkaya) ----------
+  // ---------- Fixtures (Karışık & Dengeli) ----------
   function makeFixtures() {
     const ids = state.teams.map(t => t.id);
     if (ids.length < 2) { toast("Fikstür için en az 2 takım gerekli."); return; }
     
-    // Rövanşlı tüm ikili maç havuzu (Furkan-Onur ve Onur-Furkan)
     let pool = [];
     for (let i = 0; i < ids.length; i++) {
       for (let j = 0; j < ids.length; j++) {
@@ -218,7 +217,6 @@
       }
     }
     
-    // Havuzu karıştır
     pool.sort(() => Math.random() - 0.5);
 
     let result = [];
@@ -234,7 +232,6 @@
         let hStreak = streakCount[candidate.home] || 0;
         let aStreak = streakCount[candidate.away] || 0;
 
-        // Üst üste 2 maç kuralı: 2 maçı dolduran takıma öncelik verme
         if (hStreak < 2 && aStreak < 2) {
           let score = hStreak + aStreak;
           if (score < minStreakScore) {
@@ -244,18 +241,16 @@
         }
       }
 
-      // Eğer 2'den az seri yapan uygun maç bulunamadıysa havuzdaki ilk maçı al
       if (bestIndex === -1) bestIndex = 0;
 
       let picked = pool.splice(bestIndex, 1)[0];
       result.push(picked);
 
-      // Seri sayaçlarını güncelle
       ids.forEach(id => {
         if (id === picked.home || id === picked.away) {
           streakCount[id] = (streakCount[id] || 0) + 1;
         } else {
-          streakCount[id] = 0; // Oynamayan kişinin serisini sıfırla
+          streakCount[id] = 0;
         }
       });
     }
@@ -267,34 +262,53 @@
 
   function renderFixturePanel() {
     let panel = $("fixturePanel");
-    if (!fixtures.length) return;
+    if (!fixtures.length) {
+      if (panel) panel.remove();
+      return;
+    }
     if (!panel) {
       panel = document.createElement("section");
       panel.className = "card"; panel.style.marginTop = "16px";
       panel.id = "fixturePanel";
-      panel.innerHTML = "<h2>🗓️ İkili Eşleşme Fikstürü (Rövanşlı & Üst Üste Max 2 Maç)</h2><div id='fixtureList' style='max-height:350px;overflow-y:auto'></div><p class='hint' style='color:#94a3b8'>Buraya girdiğiniz skorlar doğrudan maç listesine kaydedilir.</p>";
+      panel.innerHTML = "<h2>🗓️ İkili Eşleşme Fikstürü</h2><div id='fixtureList' style='max-height:350px;overflow-y:auto'></div><p class='hint' style='color:#94a3b8'>Skoru kaydedilen maç listeden otomatik silinir.</p>";
       document.querySelector("main").insertBefore(panel, $("standings").closest(".card"));
     }
     const box = panel.querySelector("#fixtureList");
     box.innerHTML = "";
+    
+    if (fixtures.length === 0) {
+      panel.remove();
+      return;
+    }
+
     const nameOf = id => (state.teams.find(t => t.id === id) || {}).name || "?";
-    fixtures.forEach((f, i) => {
+    fixtures.forEach((f, index) => {
       const row = document.createElement("div");
       row.className = "row";
       row.innerHTML =
-        "<span class='badge' style='background:#334155;color:#fff'>" + (i + 1) + "</span>" +
+        "<span class='badge' style='background:#334155;color:#fff'>" + (index + 1) + "</span>" +
         "<span style='flex:1;text-align:right;font-weight:600'>" + nameOf(f.home) + "</span>" +
         "<input class='score fh' type='number' min='0' placeholder='-'>" +
         "<span style='font-weight:700'>:</span>" +
         "<input class='score fa' type='number' min='0' placeholder='-'>" +
         "<span style='flex:1;font-weight:600'>" + nameOf(f.away) + "</span>";
+      
       const btn = document.createElement("button");
       btn.textContent = "Kaydet";
       btn.onclick = () => {
         const hg = row.querySelector(".fh").value, ag = row.querySelector(".fa").value;
         if (hg === "" || ag === "") { toast("Skor girin."); return; }
+        
+        // Maçı genel maç listesine ekle
         state.matches.push({ id: Date.now() + Math.floor(Math.random()*100), home: f.home, away: f.away, hg: +hg, ag: +ag });
-        save(); render(); toast("Maç kaydedildi.");
+        
+        // Fikstür listesinden bu maçı çıkar (sıfırla/kaldır)
+        fixtures.splice(index, 1);
+
+        save(); 
+        render(); 
+        renderFixturePanel(); // Fikstür panelini güncelle/kalanları göster
+        toast("Maç kaydedildi ve fikstürden düşüldü.");
       };
       row.appendChild(btn);
       box.appendChild(row);
@@ -333,7 +347,7 @@
 
   // ---------- Excel Export / Import ----------
   function exportExcel() {
-    if (typeof XLSX === 'undefined') { toast("Excel modülü yüklenemedi, interneti kontrol edin."); return; }
+    if (typeof XLSX === 'undefined') { toast("Excel modülü yüklenemedi."); return; }
     
     const wb = XLSX.utils.book_new();
 
